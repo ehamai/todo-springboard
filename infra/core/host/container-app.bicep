@@ -64,6 +64,43 @@ resource app 'Microsoft.App/containerApps@2022-11-01-preview' = {
   }
 }
 
+resource pgweb 'Microsoft.App/containerApps@2023-04-01-preview' = {
+  name: 'pgweb'
+  location: location
+  properties: {
+    environmentId: containerAppsEnvironment.id
+    configuration: {
+      ingress: {
+        external: true
+        targetPort: 8081
+      }
+    }
+    template: {
+      serviceBinds: [
+        {
+          serviceId: postgres.id
+          name: 'postgres'
+        }
+      ]
+      containers: [
+        {
+          name: 'pgweb'
+          image: 'docker.io/sosedoff/pgweb:latest'
+          command: [
+            '/bin/sh'
+          ]
+          args: [
+            '-c'
+            'PGWEB_DATABASE_URL=$POSTGRES_URL /usr/bin/pgweb --bind=0.0.0.0 --listen=8081'
+          ]
+        }
+      ]
+    }
+  }
+}
+
+output pgwebUrl string = 'https://${pgweb.properties.configuration.ingress.fqdn}'
+
 resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2022-03-01' existing = {
   name: containerAppsEnvironmentName
 }
